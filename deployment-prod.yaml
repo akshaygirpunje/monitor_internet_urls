@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitor-internet-urls
+  labels:
+    app: monitor-internet-urls
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monitor-internet-urls
+  template:
+    metadata:
+      labels:
+        app: monitor-internet-urls
+    spec:
+      containers:
+        - name: monitor-internet-urls
+          image: akshaygirpunje/pythonmonitorurls:v2
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8001
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 8001
+            timeoutSeconds: 5		   
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+      imagePullSecrets:
+      - name: akshaygirpunje-dockerrepo
+
