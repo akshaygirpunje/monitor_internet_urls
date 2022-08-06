@@ -5,7 +5,7 @@ metadata:
   labels:
     app: monitor-internet-urls
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 8001
       targetPort: 8001
