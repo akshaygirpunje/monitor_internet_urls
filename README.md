@@ -40,6 +40,9 @@ sample_external_url_response_ms{url="https://httpstat.us/503 "}  = [value]
 
 ### Prometheus Metrics
 
+##### Prometheus Metrics
+![Prometheus](images/prometheus-metrics.png)
+
 ##### URL Response time in Prometheus
 ![Prometheus](images/Prometheus-ResponseTime.png)
 
@@ -73,13 +76,14 @@ docker build -t $USERNAME/pythonmonitorurls .
 docker push $USERNAME/pythonmonitorurls:$tagname
 ```
 
-3. Create kubernetes cluster with 1.15+ using any Kubernetes cluster creation method.
+3. Create kubernetes cluster using any Kubernetes cluster creation method.
 
 - [Kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
 - [EKS](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html)
+- [k3d](https://k3d.io/v5.0.0/usage/commands/k3d_cluster_create/)
 
 
-4. Use `helm3` to install Prometheus & Grafana using prometheus-operator
+4. Use `helm3` to install Prometheus & Grafana using kube-prometheus-stack
 
 ```shell
 #Install Helm3
@@ -89,28 +93,28 @@ $ chmod 700 get_helm.sh
 $ ./get_helm.sh
 
 #Install Prometheus & Grafana
-helm repo add stable https://charts.helm.sh/stable
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-helm install prometheus stable/prometheus-operator
+helm install [RELEASE_NAME] prometheus-community/kube-prometheus-stack
 ```
 
-### Testing (Docker + Kubernetes)
+### Deployment and Testing
 
 To test with kubernetes cluster ensure that it is properly installed according to your operating system.
 
 1.  Create kubernetes secret & update `imagePullSecrets` in [deployment.yaml](deployment.yaml).
 ```shell
 kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+
+eg:- kubectl create secret docker-registry regcred --docker-server=hub.docker.com --docker-username=abc --docker-password=xyz --docker-email=abc@gmail.com
 ```
 2. In [deployment.yaml](deployment.yaml) change `image: akshaygirpunje/pythonmonitorurls:latest` to newly built Docker image you done in the set-up and also change the secret name.
 
-3.  Run `kubectl deployment-prod.yaml and service.yaml`
+3.  Run `kubectl deployment.yaml and service.yaml`
 
 ```shell
-kubectl apply -f deployment-prod.yaml
+kubectl apply -f ./yaml
 deployment.apps/monitor-internet-urls created
-
-kubectl apply -f service.yaml
 service/monitor-internet-urls created
 ```
 -   View the deployment
@@ -122,21 +126,21 @@ NAME                                  READY   UP-TO-DATE   AVAILABLE   AGE
 monitor-internet-urls                 1/1     1            1           3h17m
 ```
 
-4.  View the services & if you want to access the Prometheus,Grafana URL from outside of cluster change the type of `prometheus-grafana` & `prometheus-prometheus-oper-prometheus` services to NodePort or LoadBalancer from ClusterIP. 
+4.  View the Services 
 
 ```shell
 kubectl get services
-NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
-alertmanager-operated                     ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP   10h
-kubernetes                                ClusterIP   10.96.0.1        <none>        443/TCP                      2d22h
-monitor-internet-urls                     NodePort    10.111.11.17     <none>        8001:31060/TCP               3h18m
-prometheus-grafana                        NodePort    10.103.255.157   <none>        80:31744/TCP                 10h
-prometheus-kube-state-metrics             ClusterIP   10.107.212.55    <none>        8080/TCP                     10h
-prometheus-operated                       ClusterIP   None             <none>        9090/TCP                     10h
-prometheus-prometheus-node-exporter       ClusterIP   10.107.53.138    <none>        9100/TCP                     10h
-prometheus-prometheus-oper-alertmanager   ClusterIP   10.109.48.122    <none>        9093/TCP                     10h
-prometheus-prometheus-oper-operator       ClusterIP   10.97.212.254    <none>        8080/TCP,443/TCP             10h
-prometheus-prometheus-oper-prometheus     NodePort    10.96.241.233    <none>        9090:31105/TCP               10h
+NAME                                        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+kubernetes                                  ClusterIP   10.43.0.1       <none>        443/TCP                      7h29m
+prometheus-stack-kube-state-metrics         ClusterIP   10.43.241.17    <none>        8080/TCP                     4h21m
+prometheus-stack-kube-prom-alertmanager     ClusterIP   10.43.234.49    <none>        9093/TCP                     4h21m
+prometheus-stack-kube-prom-prometheus       ClusterIP   10.43.218.100   <none>        9090/TCP                     4h21m
+prometheus-stack-kube-prom-operator         ClusterIP   10.43.113.173   <none>        443/TCP                      4h21m
+prometheus-stack-prometheus-node-exporter   ClusterIP   10.43.120.225   <none>        9100/TCP                     4h21m
+alertmanager-operated                       ClusterIP   None            <none>        9093/TCP,9094/TCP,9094/UDP   4h20m
+prometheus-operated                         ClusterIP   None            <none>        9090/TCP                     4h20m
+monitor-internet-urls                       ClusterIP   10.43.230.234   <none>        8001/TCP                     4h9m
+prometheus-stack-grafana                    ClusterIP   10.43.66.86     <none>        3000/TCP                     4h21m
 ```
 
 5. Test services through `CLI` or `Web Browser`
@@ -144,53 +148,50 @@ prometheus-prometheus-oper-prometheus     NodePort    10.96.241.233    <none>   
 - Check using CLI
 
 ```shell
-curl http://10.111.11.17:8001/metrics
+curl http://localhost:8001/metrics
 # HELP sample_external_url_response_ms HTTP response in milliseconds
 # TYPE sample_external_url_response_ms gauge
-sample_external_url_response_ms{url="https://httpstat.us/200"} 129
-sample_external_url_response_ms{url="https://httpstat.us/503"} 120
+sample_external_url_response_ms{url="https://httpstat.us/200"} 1.299531
+sample_external_url_response_ms{url="https://httpstat.us/503"} 1.463194
 # HELP sample_external_url_up Boolean status of site up or down
 # TYPE sample_external_url_up gauge
-sample_external_url_up{url="https://httpstat.us/200"} 1
-sample_external_url_up{url="https://httpstat.us/503"} 0
+sample_external_url_up{url="https://httpstat.us/200"} 1.0
+sample_external_url_up{url="https://httpstat.us/503"} 0.0
 ```
 
--   Check `prometheus-grafana` , `prometheus-prometheus-oper-prometheus` & `monitor-internet-urls` services using web browser.
+-   Check `monitor-internet-urls`, `prometheus-stack-kube-prom-prometheus` and `prometheus-stack-grafana` services using web browser with the help of port forwarder for monitor-service,prometheus and grafana to access it
 
 ```shell
-#Syntax
-#http://{WorkerNodeIp or LB}:NodePort
-http://{WorkerNodeIp or LB}:31150
-http://{WorkerNodeIp or LB}:31744
-http://{WorkerNodeIp or LB}:31060/metrics 
+kubectl port-forward svc/monitor-internet-urls 8001
+kubectl port-forward svc/prometheus-operated 9090
+kubectl  port-forward svc/prometheus-stack-grafana  3000
 ```
 
 ---
-6. Add the service `monitor-internet-urls` endpoint to prometheus's target by adding `job_name` in [value1.yaml](values1.yaml) at `additionalScrapeConfigs` section as follows.
+6. Add the service `monitor-internet-urls` endpoint to prometheus's target by adding `job_name` in [value.yaml](values.yaml) at `additionalScrapeConfigs` section as follows.
 
 ```shell
     additionalScrapeConfigs:
-      - job_name: 'monitor-internet-urls'
-        honor_labels: true
-        static_configs:
-        - targets: ['{WorkerNodeIp or LB}:31060']
+    - job_name: 'monitor-internet-urls'
+      honor_labels: true
+      static_configs:
+      - targets: ['10.43.230.234:8001']
 ```
 
-7. Update the `prometheus-operator` repo with new service endpoint.
+7. Update the `kube-prometheus-stack` release by using helm upgrade.
    - It will add the endpoint to prometheus's target.
-   - Check `prometheus-grafana` , `prometheus-prometheus-oper-prometheus` services & modify type if require.
-   - Check the target in prometheus dashboard at path http://{WorkerNodeIp or LB}/targets
+   - Check the target in prometheus dashboard at path http://localhost:9090/targets
 ```shell
- helm upgrade  prometheus stable/prometheus-operator -f values1.yaml
+ helm upgrade  prometheus stable/prometheus-operator -f values.yaml
 ```
 
 8. Configure & test `sample_external_url_up` & `sample_external_url_response_ms` metrics in prometheus at following path
 ```shell
- http://{WorkerNodeIp or LB}:31105/graph
+ http://localhost:9090/graph
 ```
 9. Configure & test `sample_external_url_up` & `sample_external_url_response_ms` metrics in Grafana & create new Dashboard.
 ```shell
- http://{WorkerNodeIp or LB}:31744/dashboard/new?orgId=1
+ http://localhost:3000/
 ```
 ---
 
@@ -212,7 +213,7 @@ https://httpstat.us/503 Status Code ---> 0
 
 2. Curl `localhost`
 ```shell
-curl localhost:8001/metrics
+curl http://localhost:8001/metrics
 
 # HELP sample_external_url_response_ms HTTP response in milliseconds
 # TYPE sample_external_url_response_ms gauge
