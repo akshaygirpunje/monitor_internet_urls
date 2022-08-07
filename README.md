@@ -191,11 +191,17 @@ kubectl  port-forward svc/prometheus-stack-grafana  3000
 ```
 9. Configure & test `sample_external_url_up` & `sample_external_url_response_ms` metrics in Grafana & create new Dashboard.
 ```shell
- http://localhost:3000/
+1. Go to your browser and access granfana using http://localhost:3000
+2.  Enter below username and password User : admin Password : prom-operator
+3. Go to Create -> Import
+4. Go to Import via panel json section
+5. Copy the JSON data from dasboard.json file in service_monitor folder
+6. Paste it to Import via panel json section and click on import
 ```
 ---
 
 ### Local Testing (Python Script)
+
 
 1. Run ` python python_monitor_url.py`
 
@@ -227,7 +233,7 @@ sample_external_url_up{url="https://httpstat.us/503"} 0
 
 3. Unit Test
 ```shell
-python -m unittest test_python-monitor-url
+python -m unittest unittest_python-monitor-url
 https://httpstat.us/200 Response Time ---> 0.089305
 .https://httpstat.us/503 Response Time ---> 0.11151
 .https://httpstat.us/400 Response Time ---> 0.086959
