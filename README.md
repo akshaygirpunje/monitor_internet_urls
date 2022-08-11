@@ -93,7 +93,7 @@ $ chmod 700 get_helm.sh
 $ ./get_helm.sh
 
 #Install Prometheus & Grafana
-helm repo add prometheus-community https://github.com/prometheus-community/helm-charts.git
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 helm install [RELEASE_NAME] prometheus-community/kube-prometheus-stack
 ```
